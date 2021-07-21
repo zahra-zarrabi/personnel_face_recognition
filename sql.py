@@ -41,3 +41,17 @@ class Database:
             return True
         except:
             return False
+
+    @staticmethod
+    def my_update(code, name, family, birth):
+        try:
+            my_con = connect("Staff.db")
+            my_cursor = my_con.cursor()
+            # time = '{0:%y-%m-%d}'.format(datetime.now())
+            my_cursor.execute(f"UPDATE personnel SET first_name='{name}',last_name='{family}',birth='{birth}' WHERE code={code}")
+            # code=my_cursor.lastrowid
+            my_con.commit()
+            my_cursor.close()
+            return True
+        except:
+            return False
