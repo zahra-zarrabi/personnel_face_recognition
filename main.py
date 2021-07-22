@@ -6,7 +6,7 @@ from PySide6.QtWidgets import *
 
 from PySide6.QtUiTools import QUiLoader
 from PySide6 import QtGui
-from functools import partial
+
 from PySide6 import QtCore,Qt
 from PySide6.QtGui import QPixmap,QImage
 from functools import partial
@@ -91,25 +91,24 @@ class MainWindow:
         self.btn_img.setText("گرفتن عکس")
         # self.btn_img.setMaximumSize(35,25)
         self.grid.addWidget(self.btn_img,5, 1)
-        self.btn_img.clicked.connect(partial(self.my_webcan,[self.text_family, self.grid]))
+        self.btn_img.clicked.connect(partial(self.my_webcan,[self.text_code, self.grid]))
 
         self.label_Img = QLabel()
         self.label_Img.setMaximumSize(200, 200)
         # self.label_Img.setText("image :")
         self.grid.addWidget(self.label_Img, 6, 1)
-        print(self.label_Img.text())
 
         self.btn_save = QPushButton()
         self.btn_save.setText("save")
         self.grid.addWidget(self.btn_save, 6, 2)
-        self.btn_save.clicked.connect(partial(self.addnewpersonnel,self.text_name,self.text_family,self.text_code, self.text_birth, self.label_Img))
+        self.btn_save.clicked.connect(partial(self.addnewpersonnel,self.text_name,self.text_family,self.text_code, self.text_birth,self.label_Img))
 
         self.win.show()
 
 
 
     def my_webcan(self,x):
-        family, grid = x[0].text(), x[1]
+        code, grid = x[0].text(), x[1]
         self.win.grid=grid
 
         face_detector=cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -124,25 +123,19 @@ class MainWindow:
                 x,y,w,h=face
                 self.face=frame[y:y+h,x:x+w]
                 cv2.rectangle(frame,(x,y),(x+w,y+h),(127,20,100),1)
-            cv2.imshow('out',frame)
+            cv2.imshow('Webcam',frame)
 
             if cv2.waitKey(1)==ord('s'):
-                cv2.imwrite(f'{family}.jpg',self.face)
+                cv2.imwrite(f'pic/{code}.jpg',self.face)
                 break
 
         qimg= ConvertCvimage2Qtimage(self.face)
-
-        # pix=QtGui.QPixmap.fromImage(qimg)
         self.pix_img=QtGui.QPixmap(qimg)
-
-        # QtGui.QPixmap.resize(30)
-
         self.label_Img.setPixmap(self.pix_img.scaled(150,150))
 
 
-    def read_personnel(self):
+    def read_personnel(self, edit=False):
         personnel = Database.my_select()
-        print(personnel)
         self.row = len(personnel)
 
         lbl = QLabel()
@@ -160,13 +153,16 @@ class MainWindow:
         lbl_3 = QLabel()
         lbl_3.setText('Image')
         self.ui.gridLayout_staff.addWidget(lbl_3, 0, 3)
-
+        if edit:
+            for i in reversed(range(4, self.ui.gridLayout_staff.count())):
+                self.ui.gridLayout_staff.itemAt(i).widget().setParent(None)
         for i,person in enumerate(personnel):
             label_code = QLabel()
             label_code.setText(str(person[0]))
             self.ui.gridLayout_staff.addWidget(label_code, i+1, 0)
 
             label = QLabel()
+            print('------', label.text())
             label.setText(person[1] + " " + person[2])
             self.ui.gridLayout_staff.addWidget(label,i+1,1)
 
@@ -175,14 +171,17 @@ class MainWindow:
             self.ui.gridLayout_staff.addWidget(label_birth, i+1, 2)
 
             label_image = QLabel()
-            label_image.setText(person[4])
+            img = cv2.imread(f"/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{person[0]}.jpg")
+
+            qimg = ConvertCvimage2Qtimage(img)
+            self.pix_img = QtGui.QPixmap(qimg)
+            label_image.setPixmap(self.pix_img.scaled(150, 150))
             self.ui.gridLayout_staff.addWidget(label_image, i+1, 3)
 
             btn_edit=QPushButton()
             btn_edit.setIcon(QtGui.QIcon('edit-user.png'))
             btn_edit.clicked.connect(partial(self.edit,btn_edit,person[0],label,label_birth))
             self.ui.gridLayout_staff.addWidget(btn_edit,i+1,5)
-            print('zah')
 
             btn_delet=QPushButton()
             btn_delet.setIcon(QtGui.QIcon('images.jpeg'))
@@ -207,14 +206,13 @@ class MainWindow:
         family = family1.text()
         code = code1.text()
         birth = birth1.text()
-        image = image1.text()
-        print(image)
+        # image = image1.text()
 
         # personnel = Database.my_select()
 
         if code != "" and family != "":
-            response=Database.my_insert(code,name,family,birth,image)
-            print(response)
+            response=Database.my_insert(code,name,family,birth,f'/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{code}.jpg')
+
             if response==True:
                 label_code = QLabel()
                 label_code.setText(code)
@@ -231,10 +229,19 @@ class MainWindow:
                 # label_birth.setStyleSheet('color:red')
                 self.ui.gridLayout_staff.addWidget(label_birth, self.row+1, 2)
 
+                # label_image = QLabel()
+                # label_image.setText(image)
+                # # label_birth.setStyleSheet('color:red')
+                # self.ui.gridLayout_staff.addWidget(label_image, self.row+1, 3)
                 label_image = QLabel()
-                label_image.setText(image)
-                # label_birth.setStyleSheet('color:red')
-                self.ui.gridLayout_staff.addWidget(label_image, self.row+1, 3)
+                # # label_image.setIm(person[4])
+                img = cv2.imread(f"/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{code}.jpg")
+                # # label_image.setPixmap(pixmap)
+                qimg = ConvertCvimage2Qtimage(img)
+                self.pix_img = QtGui.QPixmap(qimg)
+                # QtGui.QPixmap.resize(30)
+                label_image.setPixmap(self.pix_img.scaled(150, 150))
+                self.ui.gridLayout_staff.addWidget(label_image, self.row + 1, 3)
 
                 btn_delet = QPushButton()
                 btn_delet.setIcon(QtGui.QIcon('images.jpeg'))
@@ -263,7 +270,7 @@ class MainWindow:
             family1.setText("")
             code1.setText("")
             birth1.setText("")
-            image1.setText("")
+            image1.setText(" ")
 
         else:
             msg_box = QMessageBox()
@@ -301,8 +308,6 @@ class MainWindow:
         #split name & family
         tex=label_1.text()
         split=tex.split(' ')
-        print(split[0])
-        print(split[1])
 
         # text
         self.text_name = QLineEdit()
@@ -331,7 +336,7 @@ class MainWindow:
         # self.label_Img.setMaximumSize(200, 200)
         # # self.label_Img.setText("image :")
         # self.grid.addWidget(self.label_Img, 6, 1)
-        # print(self.label_Img.text())
+
 
         self.btn_save = QPushButton()
         self.btn_save.setText("save")
@@ -344,40 +349,9 @@ class MainWindow:
         birth = birth1.text()
         if code != "" and family != "":
             response=Database.my_update(code,name,family,birth)
-            # print(response)
-            if response==True:
-            #     label_code = QLabel()
-            #     label_code.setText(code)
-            #     # label.setStyleSheet('color:red')
-            #     self.ui.gridLayout_staff.addWidget(label_code, 0)
-            #
-            #     label = QLabel()
-            #     label.setText(name + " " + family)
-            #     # label.setStyleSheet('color:red')
-            #     self.ui.gridLayout_staff.addWidget(label, self.row, 1)
-            #
-            #     label_birth = QLabel()
-            #     label_birth.setText(birth)
-            #     # label_birth.setStyleSheet('color:red')
-            #     self.ui.gridLayout_staff.addWidget(label_birth, self.row, 2)
-            #
-            #     # label_image = QLabel()
-            #     # label_image.setText(image)
-            #     # # label_birth.setStyleSheet('color:red')
-            #     # self.ui.gridLayout_staff.addWidget(label_image, self.row, 3)
-            #
-            #     btn_delet = QPushButton()
-            #     btn_delet.setIcon(QtGui.QIcon('images.jpeg'))
-            #     btn_delet.clicked.connect(partial(self.removepersonnel,btn_delet,code,label,label_birth,label_code))
-            #     self.ui.gridLayout_staff.addWidget(btn_delet, self.row, 4)
-            #
-            #     btn_edit = QPushButton()
-            #     btn_edit.setIcon(QtGui.QIcon('edit-user.png'))
-            #     btn_edit.clicked.connect(partial(self.editpersonnel))
-            #     self.ui.gridLayout_staff.addWidget(btn_edit, self.row, 5)
-            # #
-            #     self.row += 1
-            #     self.read_personnel()
+
+            if response:
+                self.read_personnel(edit=True)
                 msg_box = QMessageBox()
                 msg_box.setText('Information edited!')
                 msg_box.exec_()
