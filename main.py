@@ -5,15 +5,15 @@ import cv2
 from PySide6.QtWidgets import *
 
 from PySide6.QtUiTools import QUiLoader
-from PySide6 import QtGui
+from PySide6 import QtGui,QtCore
 
-from PySide6 import QtCore,Qt
+from PySide6.QtCore import QThread
 from PySide6.QtGui import QPixmap,QImage
 from functools import partial
 from datetime import datetime
 
 from sql import Database
-
+from filter import Filter
 
 def ConvertCvimage2Qtimage(cv_image):
     cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
@@ -21,6 +21,81 @@ def ConvertCvimage2Qtimage(cv_image):
     # bytesperline=3*width
     qimg = QImage(cv_image.data, width, height, QImage.Format_RGB888)
     return QPixmap.fromImage(qimg)
+
+class Webcam(QThread):
+    def __init__(self, win):
+        super(Webcam, self).__init__()
+        self.win = win
+    def make_mask(self,l1,l2,l3,l4,l5,l6,rd_pencil,rd_blur,rd_hsv,rd_threshold,rd_normal,rd_chessboard,code):
+        self.win.l1=l1
+        self.win.l2 = l2
+        self.win.l3= l3
+        self.win.l4 = l4
+        self.win.l5 = l5
+        self.win.l6 = l6
+
+        my_video = cv2.VideoCapture(0)
+        while True:
+            ret, frame = my_video.read()
+            if not ret:
+                break
+
+            face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+            faces = face_detector.detectMultiScale(frame, 1.3)
+            for i, face in enumerate(faces):
+                x, y, w, h = face
+                self.face = frame[y:y + h, x:x + w]
+
+            cv2.imshow('Webcam', frame)
+
+            if cv2.waitKey(1) == ord('s'):
+
+                # mask1
+                out= Filter.pencil(self.face)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l1.setPixmap(self.pix_img.scaled(150, 150))
+                rd_pencil.clicked.connect(partial(self.save_filter,out, code))
+
+                #mask2
+                out=Filter.blur(self.face)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l2.setPixmap(self.pix_img.scaled(150, 150))
+                rd_blur.clicked.connect(partial(self.save_filter, out, code))
+
+                #mask3
+                out=Filter.my_hsv(self.face)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l3.setPixmap(self.pix_img.scaled(150, 150))
+                rd_hsv.clicked.connect(partial(self.save_filter, out, code))
+
+                #mask4
+                out=Filter.threshold(self.face)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l4.setPixmap(self.pix_img.scaled(150, 150))
+                rd_threshold.clicked.connect(partial(self.save_filter, out, code))
+
+                #mask5
+                out = Filter.normal(self.face)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l5.setPixmap(self.pix_img.scaled(150, 150))
+                rd_normal.clicked.connect(partial(self.save_filter, out, code))
+
+                #mask6
+                out = Filter.chessboard(self.face,w,h)
+                qimg = ConvertCvimage2Qtimage(out)
+                self.pix_img = QtGui.QPixmap(qimg)
+                self.win.l6.setPixmap(self.pix_img.scaled(150, 150))
+                rd_chessboard.clicked.connect(partial(self.save_filter, out, code))
+
+                break
+
+    def save_filter(self,img, code):
+        cv2.imwrite(f'pic/{code.text()}.jpg', img)
 
 class MainWindow:
     def __init__(self):
@@ -30,8 +105,28 @@ class MainWindow:
         self.editform = loader.load('editform.ui')
         self.ui.show()
 
-        self.ui.btn_personnel.clicked.connect(self.read_personnel)
-        self.ui.btn_add.clicked.connect(self.add_window)
+        self.ui.btn_login.clicked.connect(self.check_login)
+
+
+    def check_login(self):
+        if self.ui.le_name.text() == 'admin' and self.ui.le_pass.text() == '123':
+            msg_box = QMessageBox()
+            msg_box.setText('خوش آمدید.')
+            msg_box.exec_()
+
+            self.ui.btn_personnel.clicked.connect(self.read_personnel)
+            self.ui.btn_add.clicked.connect(self.add_window)
+
+            self.ui.le_name.hide()
+            self.ui.le_pass.hide()
+            self.ui.lbl_name.hide()
+            self.ui.lbl_pass.hide()
+            self.ui.btn_login.hide()
+
+        else:
+            msg_box = QMessageBox()
+            msg_box.setText('نام کاربری یا رمز عبور اشتباه است.')
+            msg_box.exec_()
 
 
     def add_window(self):
@@ -70,6 +165,56 @@ class MainWindow:
         self.label_Image.setText("image :")
         self.grid.addWidget(self.label_Image, 5, 0)
 
+        # label filter
+        self.l_1 = QLabel()
+        self.l_1.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_1, 6, 0)
+
+        self.l_2 = QLabel()
+        self.l_2.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_2, 6, 1)
+
+        self.l_3 = QLabel()
+        self.l_3.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_3, 6, 2)
+
+        self.l_4 = QLabel()
+        self.l_4.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_4, 8, 0)
+
+        self.l_5 = QLabel()
+        self.l_5.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_5, 8, 1)
+
+        self.l_6 = QLabel()
+        self.l_6.setMaximumSize(200, 200)
+        self.grid.addWidget(self.l_6, 8, 2)
+
+        rd_pencil= QRadioButton()
+        rd_pencil.setText('Pencil')
+        self.grid.addWidget(rd_pencil, 7, 0)
+
+        rd_blur = QRadioButton()
+        rd_blur.setText('Blur')
+        self.grid.addWidget(rd_blur, 7, 1)
+
+        rd_hsv= QRadioButton()
+        rd_hsv.setText('HSV')
+        self.grid.addWidget(rd_hsv, 7, 2)
+
+        rd_threshold= QRadioButton()
+        rd_threshold.setText('Threshold')
+        self.grid.addWidget(rd_threshold, 9, 0)
+
+        rd_normal= QRadioButton()
+        rd_normal.setText('Normal')
+        self.grid.addWidget(rd_normal, 9, 1)
+
+        rd_chessboard= QRadioButton()
+        rd_chessboard.setText('Chessboard')
+        self.grid.addWidget(rd_chessboard, 9, 2)
+
+
         # text
         self.text_name = QLineEdit()
         self.text_name.setPlaceholderText("نام")
@@ -88,50 +233,23 @@ class MainWindow:
         self.grid.addWidget(self.text_birth, 4, 1)
 
         self.btn_img = QPushButton()
-        self.btn_img.setText("گرفتن عکس")
-        # self.btn_img.setMaximumSize(35,25)
-        self.grid.addWidget(self.btn_img,5, 1)
-        self.btn_img.clicked.connect(partial(self.my_webcan,[self.text_code, self.grid]))
-
-        self.label_Img = QLabel()
-        self.label_Img.setMaximumSize(200, 200)
-        # self.label_Img.setText("image :")
-        self.grid.addWidget(self.label_Img, 6, 1)
+        self.btn_img.setIcon(QtGui.QIcon('camera.png'))
+        self.btn_img.setIconSize(QtCore.QSize(95,30))
+        self.grid.addWidget(self.btn_img, 5, 1)
 
         self.btn_save = QPushButton()
         self.btn_save.setText("save")
-        self.grid.addWidget(self.btn_save, 6, 2)
-        self.btn_save.clicked.connect(partial(self.addnewpersonnel,self.text_name,self.text_family,self.text_code, self.text_birth,self.label_Img))
+        self.grid.addWidget(self.btn_save, 10, 1)
+        self.btn_save.clicked.connect(partial(self.addnewpersonnel,self.text_name,self.text_family,self.text_code, self.text_birth))
+
+
+        self.webcam = Webcam(self.win)
+
+        self.btn_img.clicked.connect(partial(self.webcam.make_mask,self.l_1,self.l_2,self.l_3,self.l_4,self.l_5,self.l_6,rd_pencil,rd_blur,rd_hsv,rd_threshold,rd_normal,rd_chessboard,self.text_code))
+
 
         self.win.show()
 
-
-
-    def my_webcan(self,x):
-        code, grid = x[0].text(), x[1]
-        self.win.grid=grid
-
-        face_detector=cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-        my_video=cv2.VideoCapture(0)
-        while True:
-            ret, frame=my_video.read()
-            if not ret:
-                break
-            # frame_gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            faces=face_detector.detectMultiScale(frame,1.3)
-            for i,face in enumerate(faces) :
-                x,y,w,h=face
-                self.face=frame[y:y+h,x:x+w]
-                cv2.rectangle(frame,(x,y),(x+w,y+h),(127,20,100),1)
-            cv2.imshow('Webcam',frame)
-
-            if cv2.waitKey(1)==ord('s'):
-                cv2.imwrite(f'pic/{code}.jpg',self.face)
-                break
-
-        qimg= ConvertCvimage2Qtimage(self.face)
-        self.pix_img=QtGui.QPixmap(qimg)
-        self.label_Img.setPixmap(self.pix_img.scaled(150,150))
 
 
     def read_personnel(self, edit=False):
@@ -172,7 +290,6 @@ class MainWindow:
 
             label_image = QLabel()
             img = cv2.imread(f"/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{person[0]}.jpg")
-
             qimg = ConvertCvimage2Qtimage(img)
             self.pix_img = QtGui.QPixmap(qimg)
             label_image.setPixmap(self.pix_img.scaled(150, 150))
@@ -201,14 +318,12 @@ class MainWindow:
             msg_box.setText('Deleted.')
             msg_box.exec_()
 
-    def addnewpersonnel(self,name1,family1,code1,birth1,image1):
+    def addnewpersonnel(self,name1,family1,code1,birth1):
         name = name1.text()
         family = family1.text()
         code = code1.text()
         birth = birth1.text()
-        # image = image1.text()
 
-        # personnel = Database.my_select()
 
         if code != "" and family != "":
             response=Database.my_insert(code,name,family,birth,f'/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{code}.jpg')
@@ -216,12 +331,10 @@ class MainWindow:
             if response==True:
                 label_code = QLabel()
                 label_code.setText(code)
-                # label.setStyleSheet('color:red')
                 self.ui.gridLayout_staff.addWidget(label_code, self.row+1, 0)
 
                 label = QLabel()
                 label.setText(name + " " + family)
-                # label.setStyleSheet('color:red')
                 self.ui.gridLayout_staff.addWidget(label, self.row+1, 1)
 
                 label_birth = QLabel()
@@ -229,14 +342,9 @@ class MainWindow:
                 # label_birth.setStyleSheet('color:red')
                 self.ui.gridLayout_staff.addWidget(label_birth, self.row+1, 2)
 
-                # label_image = QLabel()
-                # label_image.setText(image)
-                # # label_birth.setStyleSheet('color:red')
-                # self.ui.gridLayout_staff.addWidget(label_image, self.row+1, 3)
+
                 label_image = QLabel()
-                # # label_image.setIm(person[4])
                 img = cv2.imread(f"/media/deep/34AC4767AC4722AA1/zahra_workspace/Project_ImageProcessing/index/pic/{code}.jpg")
-                # # label_image.setPixmap(pixmap)
                 qimg = ConvertCvimage2Qtimage(img)
                 self.pix_img = QtGui.QPixmap(qimg)
                 # QtGui.QPixmap.resize(30)
@@ -255,9 +363,6 @@ class MainWindow:
 
                 self.row += 1
 
-                # self.ui.lineEdit_name.setText("")
-                # self.ui.lineEdit_message.setText("")
-
                 msg_box = QMessageBox()
                 msg_box.setText('New person saved!')
                 msg_box.exec_()
@@ -270,7 +375,13 @@ class MainWindow:
             family1.setText("")
             code1.setText("")
             birth1.setText("")
-            image1.setText(" ")
+            self.l_1.setPixmap('')
+            self.l_2.setPixmap('')
+            self.l_3.setPixmap('')
+            self.l_4.setPixmap('')
+            self.l_5.setPixmap('')
+            self.l_6.setPixmap('')
+
 
         else:
             msg_box = QMessageBox()
@@ -325,17 +436,6 @@ class MainWindow:
         self.text_birth = QLineEdit()
         self.text_birth.setText(label_birth.text())
         self.grid_edit.addWidget(self.text_birth, 4, 1)
-
-        # self.btn_img = QPushButton()
-        # self.btn_img.setText("گرفتن عکس")
-        # # self.btn_img.setMaximumSize(35,25)
-        # self.grid_edit.addWidget(self.btn_img, 5, 1)
-        # self.btn_img.clicked.connect(partial(self.my_webcan, [self.text_family, self.grid]))
-
-        # self.label_Img = QLabel()
-        # self.label_Img.setMaximumSize(200, 200)
-        # # self.label_Img.setText("image :")
-        # self.grid.addWidget(self.label_Img, 6, 1)
 
 
         self.btn_save = QPushButton()
