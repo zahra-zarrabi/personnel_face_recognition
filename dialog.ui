@@ -55,7 +55,7 @@
      </property>
      <property name="icon">
       <iconset>
-       <normaloff>addperson.png</normaloff>addperson.png</iconset>
+       <normaloff>image/addperson.png</normaloff>image/addperson.png</iconset>
      </property>
     </widget>
    </item>
@@ -75,7 +75,7 @@
      </property>
      <property name="icon">
       <iconset>
-       <normaloff>person.png</normaloff>person.png</iconset>
+       <normaloff>image/person.png</normaloff>image/person.png</iconset>
      </property>
      <property name="iconSize">
       <size>

@@ -31,6 +31,8 @@ class Filter:
         frame = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
         return frame
 
-# c=Filter
-# # image=cv2.imread('im.jpg')
-# c.blend
+# c = Filter
+# image=cv2.imread('pic/q.jpg')
+# out=c.pencil(image)
+# cv2.imshow('f',out)
+# # cv2.waitKey(1)

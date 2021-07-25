@@ -233,7 +233,7 @@ class MainWindow:
         self.grid.addWidget(self.text_birth, 4, 1)
 
         self.btn_img = QPushButton()
-        self.btn_img.setIcon(QtGui.QIcon('camera.png'))
+        self.btn_img.setIcon(QtGui.QIcon('image/camera.png'))
         self.btn_img.setIconSize(QtCore.QSize(95,30))
         self.grid.addWidget(self.btn_img, 5, 1)
 
@@ -296,12 +296,12 @@ class MainWindow:
             self.ui.gridLayout_staff.addWidget(label_image, i+1, 3)
 
             btn_edit=QPushButton()
-            btn_edit.setIcon(QtGui.QIcon('edit-user.png'))
+            btn_edit.setIcon(QtGui.QIcon('image/edit-user.png'))
             btn_edit.clicked.connect(partial(self.edit,btn_edit,person[0],label,label_birth))
             self.ui.gridLayout_staff.addWidget(btn_edit,i+1,5)
 
             btn_delet=QPushButton()
-            btn_delet.setIcon(QtGui.QIcon('images.jpeg'))
+            btn_delet.setIcon(QtGui.QIcon('image/images.jpeg'))
             btn_delet.clicked.connect(partial(self.removepersonnel,btn_delet,person[0],label_image,label,label_birth,label_code,btn_edit))
             self.ui.gridLayout_staff.addWidget(btn_delet,i+1,4)
 
@@ -352,12 +352,12 @@ class MainWindow:
                 self.ui.gridLayout_staff.addWidget(label_image, self.row + 1, 3)
 
                 btn_delet = QPushButton()
-                btn_delet.setIcon(QtGui.QIcon('images.jpeg'))
+                btn_delet.setIcon(QtGui.QIcon('image/images.jpeg'))
                 btn_delet.clicked.connect(partial(self.removepersonnel,btn_delet,code,label,label_birth,label_code))
                 self.ui.gridLayout_staff.addWidget(btn_delet, self.row+1, 4)
 
                 btn_edit = QPushButton()
-                btn_edit.setIcon(QtGui.QIcon('edit-user.png'))
+                btn_edit.setIcon(QtGui.QIcon('image/edit-user.png'))
                 btn_edit.clicked.connect(partial(self.edit,btn_edit,code,label,label_birth))
                 self.ui.gridLayout_staff.addWidget(btn_edit, self.row+1, 5)
 
